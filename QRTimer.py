@@ -79,21 +79,25 @@ class ACOutlet():
         self.set_Red(False)
         time.sleep(5)
       
-  def updateTimer(self, owner, counter, uflag):
-    acoutlet.blink_Green(2)
-    if uflag:
-      self.owner = owner
-      self.countdown = counter
-      self.dbinsert(owner,counter)
- #     print "New owner(update):"+owner+" for"+str(counter)+"\n"
-    else:
-      if not (owner in self.hist):
+  def updateTimer(self, owner, day, counter, uflag):
+    today = datetime.datetime.now().weekday()
+    if day < 0 or today >= day:
+      acoutlet.blink_Green(2)
+      if uflag:
         self.owner = owner
         self.countdown = counter
         self.dbinsert(owner,counter)
-#        print "New owner(once):"+owner+" for"+str(counter)+"\n"
-        self.hist.append(owner)
-      
+        #     print "New owner(update):"+owner+" for"+str(counter)+"\n"
+      else:
+        if not (owner in self.hist):
+          self.owner = owner
+          self.countdown = counter
+          self.dbinsert(owner,counter)
+          #        print "New owner(once):"+owner+" for"+str(counter)+"\n"
+          self.hist.append(owner)
+    else:
+      acoutlet.blink_Green(4)
+          
   def led(self):
     while True:
       GPIO.output(ACOutlet.GREEN, self._green_value)
@@ -129,7 +133,7 @@ class ACOutlet():
 if __name__ == '__main__':
   acoutlet = ACOutlet()
   last_decode = 0
-  posix_ipc.unlink_message_queue("/motion_msg")
+  #posix_ipc.unlink_message_queue("/motion_msg")
   mq = posix_ipc.MessageQueue("/motion_msg",posix_ipc.O_CREX)
 
   while True:
@@ -137,15 +141,15 @@ if __name__ == '__main__':
     if (time.time() - last_decode) > 15:
       data = decode(Image.open(filename))
       if data:
-        m = re.match("(\w+)/(\w+)/(\d+)/(\w+)",
+        m = re.match("(\w+)/(\d+)/(\d+)/(\w+)/(\w+)",
                 data[0][0].decode('utf-8', 'ignore'))
         if m:
-          (owner, day, minutes, flag) = m.groups()
-          if flag == "TRUE":
+          (owner, day, minutes, updatable, needsface) = m.groups()
+          if updatable == "TRUE":
             uflag = True
           else:
             uflag = False
-          acoutlet.updateTimer(owner, int(minutes), uflag)
+          acoutlet.updateTimer(owner,int(day), int(minutes), uflag)
           last_decode =time.time()
 
     os.remove(filename)
