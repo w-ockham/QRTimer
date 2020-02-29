@@ -61,7 +61,7 @@ class ACOutlet():
     now = time.ctime().split()[3].split(':')
     h = int(now[0])
     m = int(now[1])
-    if h == 6 and (h == 7 and m < 30):
+    if h == 6 or (h == 7 and m < 30):
       return True
     else:
       return False
