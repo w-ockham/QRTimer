@@ -57,6 +57,17 @@ class ACOutlet():
                       (datetime.datetime.now(),owner,duration))
     self.conn.commit()
 
+  def morning(self):
+    now = time.ctime().split()[3].split(':')
+    h = int(now[0])
+    m = int(now[1])
+    print h
+    print m
+    if h == 6 and (h == 7 and m < 30):
+      return True
+    else:
+      return False
+    
   def ACtimer(self):
     self.set_ACoutlet(False)
     self.set_Red(False)
@@ -64,12 +75,14 @@ class ACOutlet():
       if self.today != time.ctime()[:3]:
         self.hist = []
       self.today = time.ctime()[:3]
-      if self.countdown > 0:
-#        print "Owner:"+self.owner+" for "+str(self.countdown)+"\n"
-#        print self.hist
+      if self.morning():
+        GPIO.output(ACOutlet.OUTLET,True)
+        self.set_Red(True)
+        time.sleep(5)
+      elif self.countdown > 0:
         GPIO.output(ACOutlet.OUTLET,True)
         self.countdown -= 1
-        if self.countdown < 10:
+        if self.countdown < 6:
           self.blink_Red(60)
         else:
           self.set_Red(True)
@@ -81,7 +94,7 @@ class ACOutlet():
       
   def updateTimer(self, owner, day, counter, uflag):
     today = datetime.datetime.now().weekday()
-    if day < 0 or today >= day:
+    if day < 0 or today == day:
       acoutlet.blink_Green(2)
       if uflag:
         self.owner = owner
@@ -133,7 +146,10 @@ class ACOutlet():
 if __name__ == '__main__':
   acoutlet = ACOutlet()
   last_decode = 0
-  #posix_ipc.unlink_message_queue("/motion_msg")
+  try:
+    posix_ipc.unlink_message_queue("/motion_msg")
+  except:
+    pass
   mq = posix_ipc.MessageQueue("/motion_msg",posix_ipc.O_CREX)
 
   while True:
@@ -141,7 +157,7 @@ if __name__ == '__main__':
     if (time.time() - last_decode) > 15:
       data = decode(Image.open(filename))
       if data:
-        m = re.match("(\w+)/(\d+)/(\d+)/(\w+)/(\w+)",
+        m = re.match("(\w+)/(-?\d+)/(\d+)/(\w+)/(\w+)",
                 data[0][0].decode('utf-8', 'ignore'))
         if m:
           (owner, day, minutes, updatable, needsface) = m.groups()
