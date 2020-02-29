@@ -73,7 +73,7 @@ class ACOutlet():
       if self.today != time.ctime()[:3]:
         self.hist = []
       self.today = time.ctime()[:3]
-      if self.morning():
+      if not (self.today in ['Sun','Sat']) and self.morning():
         GPIO.output(ACOutlet.OUTLET,True)
         self.set_Red(True)
         time.sleep(5)
